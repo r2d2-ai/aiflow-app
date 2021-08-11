@@ -1,15 +1,18 @@
 {
-  "name": "myapp1",
+  "name": "detector",
   "type": "AIflow:app",
   "version": "0.0.1",
   "appModel": "1.0.0",
   "description": "",
   "imports": [
+    "github.com/r2d2-ai/aiflow/trigger/net/ipcam",
+    "github.com/r2d2-ai/aiflow/activity/common/log",
+    "github.com/r2d2-ai/aiflow/action/flow"
   ],
   "triggers": [
     {
       "id": "ai_box_ipcam",
-      "ref": "github.com/r2d2-ai/aiflow/common/trigger/ipcam",
+      "ref": "#ipcam",
       "name": "IP Cam Feed",
       "description": "IP Cam Feed",
       "handlers": [
@@ -24,7 +27,7 @@
             "cameraId": "cam-1"
           },
           "action": {
-            "ref": "github.com/r2d2-ai/aiflow/flow",
+            "ref": "#flow",
             "settings": {
               "flowURI": "res://flow:detect"
             },
@@ -65,7 +68,7 @@
             "name": "Log",
             "description": "Logs a message",
             "activity": {
-              "ref": "github.com/r2d2-ai/aiflow/common/activity/log",
+              "ref": "#log",
               "input": {
                 "message": "=$flow.cameraId",
                 "addDetails": false,
