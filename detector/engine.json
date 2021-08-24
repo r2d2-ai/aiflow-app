@@ -1,0 +1,8 @@
+{
+    "type": "AIflow:engine",
+    "stopEngineOnError": false,
+    "runnerType": "DIRECT",
+    "imports": [
+    ]
+    
+  }

@@ -6,12 +6,15 @@
   "description": "",
   "imports": [
     "github.com/r2d2-ai/aiflow/trigger/net/ipcam",
-    "github.com/r2d2-ai/aiflow/activity/common/log",
-    "github.com/r2d2-ai/aiflow/action/flow"
+    "github.com/r2d2-ai/aiflow/activity/vision/transform",
+    "github.com/r2d2-ai/aiflow/activity/vision/object_detection",
+    "github.com/r2d2-ai/aiflow/action/flow",
+    "github.com/r2d2-ai/aiflow/action/flow/activity/subflow",
+    "github.com/r2d2-ai/aiflow/function/utils"
   ],
   "triggers": [
     {
-      "id": "ai_box_ipcam",
+      "id": "cam_1",
       "ref": "#ipcam",
       "name": "IP Cam Feed",
       "description": "IP Cam Feed",
@@ -27,23 +30,183 @@
             "cameraId": "cam-1"
           },
           "action": {
-            "ref": "#flow",
-            "settings": {
-              "flowURI": "res://flow:detect"
-            },
-            "input": {
-              "groupId": "=$.groupId",
-              "cameraId": "=$.cameraId",
-              "image": "=$.image"
-            }
+            "id": "flow_1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cam_2",
+      "ref": "#ipcam",
+      "name": "IP Cam Feed",
+      "description": "IP Cam Feed",
+      "handlers": [
+        {
+          "settings": {
+            "protocol": "RSTP",
+            "host": "192.168.50.195",
+            "user": "admin",
+            "password": "P$rolaMeaCAM",
+            "videoUri": "1",
+            "groupId": "group-1",
+            "cameraId": "cam-2"
+          },
+          "action": {
+            "id": "flow_2"
           }
         }
       ]
     }
   ],
+  "actions": [
+    {
+      "id": "flow_1",
+      "ref": "#flow",
+      "settings": {
+        "flowURI": "res://flow:1"
+      },
+      "input": {
+        "groupId": "=$.groupId",
+        "cameraId": "=$.cameraId",
+        "image": "=$.image"
+      }
+    },
+    {
+      "id": "flow_2",
+      "ref": "#flow",
+      "settings": {
+        "flowURI": "res://flow:2"
+      },
+      "input": {
+        "groupId": "=$.groupId",
+        "cameraId": "=$.cameraId",
+        "image": "=$.image"
+      }
+    }
+  ],
   "resources": [
     {
-      "id": "flow:detect",
+      "id": "flow:1",
+      "data": {
+        "name": "Cam 1",
+        "metadata": {
+          "input": [
+            {
+              "name": "cameraId",
+              "type": "string"
+            },
+            {
+              "name": "groupId",
+              "type": "string"
+            },
+            {
+              "name": "image",
+              "type": "image"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "image_transform_1",
+            "name": "Transform",
+            "description": "Transform",
+            "activity": {
+              "ref": "#transform",
+              "settings": {
+                "output_width": "128",
+                "output_height": "128",
+                "scale_mode": "FIT"
+              },
+              "input": {
+                "image": "=$flow.image"
+              }
+            }
+          },
+          {
+            "id": "subflow_1",
+            "name": "Detection",
+            "activity": {
+              "ref": "#subflow",
+              "input": {
+                "cameraId": "=$flow.cameraId",
+                "groupId": "=$flow.groupId",
+                "image": "=$activity[image_transform_1].image"
+              },
+              "settings": {
+                "flowURI": "res://flow:detection"
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "image_transform_1",
+            "to": "subflow_1"
+          }]
+      }
+    },
+    {
+      "id": "flow:2",
+      "data": {
+        "name": "Cam 2",
+        "metadata": {
+          "input": [
+            {
+              "name": "cameraId",
+              "type": "string"
+            },
+            {
+              "name": "groupId",
+              "type": "string"
+            },
+            {
+              "name": "image",
+              "type": "image"
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "id": "image_transform_2",
+            "name": "Transform",
+            "description": "Transform",
+            "activity": {
+              "ref": "#transform",
+              "settings": {
+                "output_width": "128",
+                "output_height": "128",
+                "scale_mode": "FIT"
+              },
+              "input": {
+                "image": "=$flow.image"
+              }
+            }
+          },
+          {
+            "id": "subflow_2",
+            "name": "Detection",
+            "activity": {
+              "ref": "#subflow",
+              "input": {
+                "cameraId": "=$flow.cameraId",
+                "groupId": "=$flow.groupId",
+                "image": "=$activity[image_transform_2].image"
+              },
+              "settings": {
+                "flowURI": "res://flow:detection"
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "image_transform_2",
+            "to": "subflow_2"
+          }]
+      }
+    },
+    {
+      "id": "flow:detection",
       "data": {
         "name": "Detect",
         "metadata": {
@@ -58,21 +221,24 @@
             },
             {
               "name": "image",
-              "type": "any"
+              "type": "image"
             }
           ]
         },
         "tasks": [
           {
-            "id": "log_2",
-            "name": "Log",
-            "description": "Logs a message",
+            "id": "object_detection",
+            "name": "Object Detection",
+            "description": "Vision objects",
             "activity": {
-              "ref": "#log",
+              "ref": "#object_detection",
+              "settings": {
+                "model": "mymodel"
+              },
               "input": {
-                "message": "=$flow.cameraId",
-                "addDetails": false,
-                "usePrint": false
+                "image": "=$flow.image",
+                "groupId": "=$flow.groupId",
+                "cameraId": "=$flow.cameraId"
               }
             }
           }
