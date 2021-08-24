@@ -5,12 +5,14 @@
   "appModel": "1.0.0",
   "description": "",
   "imports": [
-    "github.com/r2d2-ai/aiflow/trigger/net/ipcam",
-    "github.com/r2d2-ai/aiflow/activity/vision/transform",
-    "github.com/r2d2-ai/aiflow/activity/vision/object_detection",
     "github.com/r2d2-ai/aiflow/action/flow",
     "github.com/r2d2-ai/aiflow/action/flow/activity/subflow",
-    "github.com/r2d2-ai/aiflow/function/utils"
+    "github.com/r2d2-ai/aiflow/activity/common/actreturn",
+    "github.com/r2d2-ai/aiflow/activity/common/log",
+    "github.com/r2d2-ai/aiflow/activity/vision/object_detection",
+    "github.com/r2d2-ai/aiflow/activity/vision/transform",
+    "github.com/r2d2-ai/aiflow/function/utils",
+    "github.com/r2d2-ai/aiflow/trigger/net/ipcam"
   ],
   "triggers": [
     {
@@ -136,13 +138,31 @@
                 "flowURI": "res://flow:detection"
               }
             }
+          },
+          {
+            "id": "log_1",
+            "name": "Log",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "addDetails": false,
+                "usePrint": false,
+                "message": "=$activity[subflow_1].results"
+              }
+            }
           }
         ],
         "links": [
           {
             "from": "image_transform_1",
             "to": "subflow_1"
-          }]
+          },
+          {
+            "from": "subflow_1",
+            "to": "log_1"
+          }
+        ]
       }
     },
     {
@@ -196,13 +216,31 @@
                 "flowURI": "res://flow:detection"
               }
             }
+          },
+          {
+            "id": "log_2",
+            "name": "Log",
+            "description": "Logs a message",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "addDetails": false,
+                "usePrint": false,
+                "message": "=$activity[subflow_2].results"
+              }
+            }
           }
         ],
         "links": [
           {
             "from": "image_transform_2",
             "to": "subflow_2"
-          }]
+          },
+          {
+            "from": "subflow_2",
+            "to": "log_2"
+          }
+        ]
       }
     },
     {
@@ -222,6 +260,16 @@
             {
               "name": "image",
               "type": "image"
+            },
+            {
+              "name": "rois",
+              "type": "rois"
+            }
+          ],
+          "output": [
+            {
+              "name": "results",
+              "type": "object"
             }
           ]
         },
@@ -238,9 +286,29 @@
               "input": {
                 "image": "=$flow.image",
                 "groupId": "=$flow.groupId",
-                "cameraId": "=$flow.cameraId"
+                "cameraId": "=$flow.cameraId",
+                "rois": "=$flow.rois"
               }
             }
+          },
+          {
+            "id": "actreturn",
+            "name": "Return",
+            "description": "Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "results": "=$activity[object_detection].results"
+                }
+              }
+            }
+          }
+        ],
+        "links": [
+          {
+            "from": "object_detection",
+            "to": "actreturn"
           }
         ]
       }
